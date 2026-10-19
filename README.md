@@ -1,4 +1,5 @@
 # ZOMBIE INFECTION CITY ONLINE
 依存パッケージなし（Node.js 18以上）。`npm start` で http://localhost:3000 が起動します。
-公開: GitHubに上げて Render / Railway / Fly.io などの「Web Service」で `npm start` を実行（PORTは自動）。
-同期するのはプレイヤーの位置・向きのみ（最大100人）。ゾンビ・アイテム・拠点は各自別々です。
+タイトル画面でルームコードを入力（空欄=ソロ）。同じコードの人が同じ世界に入ります。
+公開: GitHubに上げて Render などの Web Service で `npm start` を実行。
+同期: 時刻・太陽・ゾンビ・拠点・ドア・プレイヤー位置（ルーム最初の参加者がホスト）。

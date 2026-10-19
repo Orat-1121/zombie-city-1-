@@ -48,6 +48,7 @@ canvas{position:fixed;inset:0;display:block}
 <div id="wp"><div id="wn"></div><div id="am"></div><div id="iv"></div></div>
 <div id="inv"></div><div id="tt"></div><div id="st"></div><div id="cx"></div><div id="pr"></div><div id="sc"></div><div id="vn"></div><div id="vg"></div>
 <div id="ov"><div id="ttl"><div class="t1">ZOMBIE</div><div class="t2">INFECTION</div><div class="t3">☣ CITY ☣</div><div class="t4">— 感 染 都 市 —</div></div>
+<div id="rr" style="margin:0 0 12px;text-align:center"><input id="roomcode" maxlength="16" placeholder="ルームコード（空欄=ソロ）" style="padding:10px 12px;font-size:16px;width:220px;border-radius:6px;border:1px solid #888;background:#111;color:#fff;text-align:center"> <button id="rdice" type="button" style="padding:10px 12px;font-size:16px;border-radius:6px">🎲</button></div>
 <div id="mn"><button id="bp" type="button">▶ PLAY</button><button id="bh" type="button">HOW TO PLAY</button></div>
 <div id="hw"><div class="hg">
 <section><h3>基本操作</h3><p>WASD 移動／Shift ダッシュ／Space ジャンプ<br>左クリック 発砲／右クリック長押し 照準（スナイパーはスコープ）<br>R リロード／1〜4・ホイール 武器切替／G 手榴弾／F 食べる／V 飲む<br>E 拾う・ドアの開閉・乗り物に乗る</p></section>
@@ -60,6 +61,7 @@ canvas{position:fixed;inset:0;display:block}
 </div><div class="bk"><button id="bb" type="button">← 戻る</button></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+const NET={on:0,host:0,id:Math.random().toString(36).slice(2,10),off:0,t0:0,room:'',q:[],others:()=>[],clk(){return(Date.now()+this.off-this.t0)/1000}};let ZID=1,TGT=null,_sv=null;const PUP=new Map();function netSend(m){if(NET.on)NET.q.push(m)}
 let SD=1;const sr=(()=>{let a=20261017;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})();
 const $=i=>document.getElementById(i),R=()=>SD?sr():Math.random(),M=Math,PI=M.PI,NB=4,P=60,RW=18,EXT=279,L=2*EXT;
 const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,420),ren=new THREE.WebGLRenderer({antialias:true}),cv=ren.domElement;
@@ -193,7 +195,9 @@ a(tx0,Y+5.15,tz1-.15,tx1,Y+6.2,tz1,WDM,0);a(tx0,Y+5.15,tz0,tx1,Y+6.2,tz0+.15,WDM
 for(let i=0;i<11;i++){const zz=tz1+(10-i),top=Y+.45*(i+1);a(tx1-2.4,Y,zz,tx1-.6,top,zz+1,STM)}}
 if(lv>=4){a(cx+2.5,Y,cz+1.5,cx+11.5,Y+.1,cz+10.5,PADM);a(cx+6.2,Y+.1,cz+4.5,cx+6.4,Y+.12,cz+7.5,LMP,0);a(cx+6.2,Y+.1,cz+5.9,cx+7.8,Y+.12,cz+6.1,LMP,0);a(cx+7.6,Y+.1,cz+4.5,cx+7.8,Y+.12,cz+7.5,LMP,0);
 }}
-function buildHere(){const l=lotAt(pl.x,pl.z);if(!l){toast('ここは空き地ではない（青い光の柱が立つ土地へ）');return}
+function buildHere(){const l=lotAt(pl.x,pl.z),b=l&&[l.lv,l.w,l.i];buildHere0();if(l&&(l.lv!==b[0]||l.w!==b[1]||l.i!==b[2])){const i=LOTS.indexOf(l);netSend({k:'base',i,lv:l.lv,w:l.w,iv:l.i,sk:'b'+i})}}
+function toggleDoor(d){const o=d.open;toggleDoor0(d);if(d.open!==o){const li=LOTS.indexOf(d.l),di=d.l.doors.indexOf(d);netSend({k:'door',l:li,d:di,o:d.open?1:0,sk:'d'+li+'_'+di})}}
+function buildHere0(){const l=lotAt(pl.x,pl.z);if(!l){toast('ここは空き地ではない（青い光の柱が立つ土地へ）');return}
 if(l.lv>=4){toast('この拠点は最大レベル（Lv4）です');return}
 if(!wood&&!iron){const n=BNEED[l.lv];toast(`資材がありません。Lv${l.lv+1}まで 木材 ${l.w}/${n[0]}・鉄 ${l.i}/${n[1]}`);return}
 // 所持している木材・鉄をすべて投入
@@ -228,7 +232,7 @@ function buildDoors(l,h,lv,po){const{cx,cz}=l,ht=lv<3?(lv==1?1.4:2.2):3.2,th=lv<
 mkDoor(l,cx-2,cz+h-th/2,4,ht,th,lv<3?WDM:IRM,po[0]);
 if(lv>=2){const cd=[0,5,6,7][lv-1],z1=cz-h+1.2+cd;mkDoor(l,cx-.9,z1-.15,1.8,2.2,.3,WDM,po[1])}}
 function doorNear(){let b=null,bd=3.4;for(const d of DRS){const e=M.hypot(pl.x-d.cx,pl.z-d.cz);if(e<bd&&pl.y<3&&pl.y>-1){bd=e;b=d}}return b}
-function toggleDoor(d){if(d.open){if(M.abs(pl.x-d.cx)<d.w/2+.6&&M.abs(pl.z-d.cz)<d.th/2+.9&&pl.y<3){toast('ドアの前に立っていると閉められない');return}
+function toggleDoor0(d){if(d.open){if(M.abs(pl.x-d.cx)<d.w/2+.6&&M.abs(pl.z-d.cz)<d.th/2+.9&&pl.y<3){toast('ドアの前に立っていると閉められない');return}
 for(const z of zs)if(!z.dead&&M.abs(z.x-d.cx)<d.w/2+.5&&M.abs(z.z-d.cz)<d.th/2+.8&&M.abs(z.y-.2)<2){toast('ゾンビが挟まっていて閉められない');return}
 d.open=false;B.push(d.bb);snd(300,.1,.3)}else{d.open=true;const k=B.indexOf(d.bb);if(k>=0)B.splice(k,1);snd(500,.1,.25)}}
 function updDoors(dt){for(const d of DRS){const t=d.open?PI/2:0;d.ang+=(t-d.ang)*M.min(1,dt*8);d.pv.rotation.y=d.ang}}
@@ -302,17 +306,25 @@ const pm=(ge,m,x,y,z,p)=>{const o=new THREE.Mesh(ge,m);o.position.set(x,y,z);o.c
 pv=(x,y,m,ge,oy,rx)=>{const p=new THREE.Group();p.position.set(x,y,0);pm(ge,m,0,oy,0,p);p.rotation.x=rx;g.add(p);return p};
 const L1=pv(-.13,.9,pt,ZG.leg,-.42,0),L2=pv(.13,.9,pt,ZG.leg,-.42,0),A1=pv(-.3,1.55,sk,ZG.arm,-.3,-1.35),A2=pv(.3,1.55,sk,ZG.arm,-.3,-1.35);
 pm(ZG.tor,sh,0,1.25,0).scale.z=.65;const hd=pm(ZG.hd,sk,0,1.75,.02);hd.scale.y=1.2;hd.userData.head=1;[-.05,.05].forEach(e=>pm(ZG.eye,t.ey||EYE,e,.03,.13,hd));
-g.scale.set(t.k*(t.wd||1),t.k*(t.ht||1),t.k*(t.wd||1));g.position.set(x,y0,z);scene.add(g);const o={g,x,z,y:y0||.2,ty,lurk,dr:0,hp:t.h,s:t.s,d:t.d,cd:.5,t:R()*9,L1,L2,A1,A2,wa:R()*6.28,wt:0,dead:0};g.userData.z=o;zs.push(o);return o}
-function spawnZ(){if(pl.y<-5)return;const r=R(),w=wave(),ty=w>=4&&r<.08?2:w>=2&&r<.1+w*.03?1:0;for(let i=0;i<20;i++){const a=R()*6.28,d=40+R()*30,x=pl.x+M.cos(a)*d,z=pl.z+M.sin(a)*d;if(M.abs(x)<EXT-4&&M.abs(z)<EXT-4&&!blocked(x,z,.2,1.2)&&!builtAt(x,z)){mkZ(ty,x,z);return}}}
+g.scale.set(t.k*(t.wd||1),t.k*(t.ht||1),t.k*(t.wd||1));g.position.set(x,y0,z);scene.add(g);const o={id:ZID++,g,x,z,y:y0||.2,ty,lurk,dr:0,hp:t.h,s:t.s,d:t.d,cd:.5,t:R()*9,L1,L2,A1,A2,wa:R()*6.28,wt:0,dead:0};g.userData.z=o;zs.push(o);return o}
+function spawnZ(){if(NET.on&&!NET.host)return;if(pl.y<-5)return;if(zs.reduce((n,z)=>n+(z.dead?0:1),0)>90)return;const _c=spC();const r=R(),w=wave(),ty=w>=4&&r<.08?2:w>=2&&r<.1+w*.03?1:0;for(let i=0;i<20;i++){const a=R()*6.28,d=40+R()*30,x=_c.x+M.cos(a)*d,z=_c.z+M.sin(a)*d;if(M.abs(x)<EXT-4&&M.abs(z)<EXT-4&&!blocked(x,z,.2,1.2)&&!builtAt(x,z)){mkZ(ty,x,z);return}}}
 function zmv(z,ux,uz,st){for(const a of[0,.7,-.7,1.4,-1.4]){const c=M.cos(a),s=M.sin(a),nx=z.x+(ux*c-uz*s)*st,nz=z.z+(ux*s+uz*c)*st;if(M.abs(nx)<EXT-2&&M.abs(nz)<EXT-2&&!blocked(nx,nz,z.y,.45)){z.x=nx;z.z=nz;return 1}}return 0}
-function updZ(dt){for(const z of zs){if(z.dead){z.dt+=dt;const a=M.min(1,z.dt/.6);z.g.rotation.x=-a*1.5;z.g.position.y=z.y+.12*a;if(z.dt>15){scene.remove(z.g);z.rm=1}continue}
+function zRestore(){if(_sv){pl.x=_sv.x;pl.y=_sv.y;pl.z=_sv.z;drv=_sv.d;_sv=null}TGT=null}
+function zPick(z){zRestore();if(!NET.on||!NET.host)return;let b=null,bd=M.hypot(pl.x-z.x,pl.z-z.z)+(dead?1e9:0);for(const o of NET.others()){const d=M.hypot(o.x-z.x,o.z-z.z);if(d<bd){bd=d;b=o}}if(b){_sv={x:pl.x,y:pl.y,z:pl.z,d:drv};pl.x=b.x;pl.y=b.y;pl.z=b.z;drv=null;TGT=b.id}}
+function zdmg(n,w){if(TGT)netSend({k:'dmg',to:TGT,n,w});else dmg(n,w)}
+function spC(){const o=NET.others(),i=(R()*(o.length+1))|0;return i<o.length?o[i]:pl}
+function updPup(dt){const k=M.min(1,dt*10);for(const z of zs){if(z.dead){z.dt=(z.dt||0)+dt;const a=M.min(1,z.dt/.6);z.g.rotation.x=-a*1.5;z.g.position.y=z.y+.12*a;continue}
+const ox=z.x,oz=z.z;if(z.tx!==undefined){z.x+=(z.tx-ox)*k;z.y+=(z.ty2-z.y)*k;z.z+=(z.tz-oz)*k;z.g.rotation.y=z.tr}
+const mv=M.hypot(z.x-ox,z.z-oz)/dt>.4?1:0;z.g.visible=true;z.t+=dt*z.s*2.4;z.g.position.set(z.x,z.y,z.z);const s=M.sin(z.t)*.7*mv;z.L1.rotation.x=s;z.L2.rotation.x=-s;z.A1.rotation.x=-1.35+M.sin(z.t*.7)*.12;z.A2.rotation.x=-1.35-M.sin(z.t*.7)*.12;z.g.rotation.z=M.sin(z.t*.5)*.05*mv}
+for(let i=zs.length;i--;)if(zs[i].rm)zs.splice(i,1)}
+function updZ(dt){if(NET.on&&!NET.host){updPup(dt);return}for(const z of zs){zPick(z);if(z.dead){z.dt+=dt;const a=M.min(1,z.dt/.6);z.g.rotation.x=-a*1.5;z.g.position.y=z.y+.12*a;if(z.dt>15){scene.remove(z.g);z.rm=1}continue}
 const dx=pl.x-z.x,dz=pl.z-z.z,d=M.hypot(dx,dz);let mv=0;if((z.y<-5)!==(pl.y<-5)||d>(z.lurk?95:150)){if(!z.lurk&&d>150&&z.y>-5){scene.remove(z.g);z.rm=1}z.g.visible=false;continue}z.g.visible=true;z.t+=dt*z.s*2.4;if(z.lurk&&((d<16&&M.abs(pl.y-z.y)<2.5)||d<5))z.lurk=0;
-const tg=z.lurk?null:navT(z);if(!z.lurk&&d<65){const tx=tg?tg[0]-z.x:dx,tz=tg?tg[1]-z.z:dz,td=M.hypot(tx,tz)||1,ux=tx/td,uz=tz/td;if(d>1.1)mv=zmv(z,ux,uz,z.s*dt*(z.ty==4&&d<9?1.5:1));z.g.rotation.y=M.atan2(ux,uz);if(d<(drv?3.2:1.5)&&M.abs(pl.y-z.y)<1.8){z.cd-=dt;if(z.cd<=0){z.cd=1;dmg(z.d*(drv?.4:1),'zombie')}}else z.cd=.5}
+const tg=z.lurk?null:navT(z);if(!z.lurk&&d<65){const tx=tg?tg[0]-z.x:dx,tz=tg?tg[1]-z.z:dz,td=M.hypot(tx,tz)||1,ux=tx/td,uz=tz/td;if(d>1.1)mv=zmv(z,ux,uz,z.s*dt*(z.ty==4&&d<9?1.5:1));z.g.rotation.y=M.atan2(ux,uz);if(d<(drv?3.2:1.5)&&M.abs(pl.y-z.y)<1.8){z.cd-=dt;if(z.cd<=0){z.cd=1;zdmg(z.d*(drv?.4:1),'zombie')}}else z.cd=.5}
 else{z.wt-=dt;if(z.wt<=0){z.wt=3+R()*4;z.wa=R()*6.28}mv=z.lurk?0:zmv(z,M.sin(z.wa),M.cos(z.wa),z.s*.3*dt);z.g.rotation.y=z.wa}
 z.y=gnd(z.x,z.z,z.y);z.g.position.set(z.x,z.y,z.z);const s=M.sin(z.t)*.7*mv;z.L1.rotation.x=s;z.L2.rotation.x=-s;z.A1.rotation.x=-1.35+M.sin(z.t*.7)*.12;z.A2.rotation.x=-1.35-M.sin(z.t*.7)*.12;z.g.rotation.z=M.sin(z.t*.5)*.05*mv}
-for(let i=zs.length;i--;)if(zs[i].rm)zs.splice(i,1)}
+zRestore();for(let i=zs.length;i--;)if(zs[i].rm)zs.splice(i,1)}
 function gas(z){const p=new THREE.Vector3(z.x,z.y+1,z.z);fx(p,40,0x6dff3a,5,.2);fx(p,16,0x2d6a1a,3,.3);if(M.hypot(pl.x-z.x,pl.z-z.z)<4.2&&M.abs(pl.y-z.y)<3)dmg(18,'toxic');snd(700,.5,.3)}
-function hurtZ(z,n,p){z.lurk=0;z.hp-=n;fx(p,6,0x7a0c0c,2.5,.05);if(z.hp<=0&&!z.dead){z.dead=1;z.dt=0;kills++;snd(400,.3,.2);if(R()<.4)spawnItem(z.y<-5?'I':R()<.6?'T':'I',z.x,z.z,z.y);if(z.ty==3)gas(z)}}
+function hurtZ(z,n,p){if(NET.on&&!NET.host){z.lh=performance.now();fx(p,6,0x7a0c0c,2.5,.05);netSend({k:'zh',id:z.id,n});return}z.lurk=0;z.hp-=n;fx(p,6,0x7a0c0c,2.5,.05);if(z.hp<=0&&!z.dead){z.dead=1;z.dt=0;kills++;snd(400,.3,.2);if(R()<.4){const _t=z.y<-5?'I':R()<.6?'T':'I';spawnItem(_t,z.x,z.z,z.y);netSend({k:'drop',t:_t,x:z.x,z:z.z,y:z.y})}if(z.ty==3)gas(z)}}
 const PG=new THREE.BoxGeometry(1,1,1),PM={};
 function fx(p,n,c,s,sz){if(ps.length>250)return;const m=PM[c]||(PM[c]=new THREE.MeshBasicMaterial({color:c}));for(let i=0;i<n;i++){const o=new THREE.Mesh(PG,m);o.scale.setScalar(sz*(.5+R()));o.position.copy(p);scene.add(o);ps.push({o,v:new THREE.Vector3((R()-.5)*s,R()*s*.8,(R()-.5)*s),t:.5+R()*.6})}}
 function updP(dt){for(let i=ps.length;i--;){const q=ps[i];q.v.y-=14*dt;q.o.position.addScaledVector(q.v,dt);q.t-=dt;if(q.t<=0||q.o.position.y<.05){scene.remove(q.o);ps.splice(i,1)}}}
@@ -376,13 +388,13 @@ function updVeh(dt){for(const c of cars)if(c.kind=='heli'){c.rs+=((drv===c?(fuel
 const SKD=new THREE.Color(1,1,1),SKN=new THREE.Color(.03,.04,.09),SKU=new THREE.Color(1,.6,.42),FGB=new THREE.Color(0x8e98a8).convertSRGBToLinear(),SUC=new THREE.Color(0xffffff),SUD=new THREE.Color(0xff9a5a),MNC=new THREE.Color(0x8fa8ff),sunO=new THREE.Vector3(-70,90,50),sdr=new THREE.Vector3();
 let nightF=0,hourT=8;
 const timeStr=()=>String(M.floor(hourT)).padStart(2,'0')+':'+String(M.floor(hourT%1*60)).padStart(2,'0');
-function tod(ug){hourT=(8+tm/6)%24;const a=(hourT-6)/24*PI*2,el=M.sin(a),d0=M.min(1,M.max(0,(el+.15)/.4)),dF=d0*d0*(3-2*d0),dusk=M.exp(-M.pow(el/.2,2));nightF=1-dF;
+function tod(ug){hourT=(8+tm/12)%24;const a=(hourT-6)/24*PI*2,el=M.sin(a),d0=M.min(1,M.max(0,(el+.15)/.4)),dF=d0*d0*(3-2*d0),dusk=M.exp(-M.pow(el/.2,2));nightF=1-dF;
 if(ug){sun.intensity=0;hemi.intensity=.22;sky.visible=stars.visible=sunM.visible=moonM.visible=false;scene.fog.color.copy(FOG1);return}
 sky.visible=stars.visible=sunM.visible=moonM.visible=true;sky.material.color.copy(SKN).lerp(SKD,dF).lerp(SKU,dusk*.55);scene.fog.color.copy(FGB).multiply(sky.material.color).multiplyScalar(.85);
 sdr.set(M.cos(a),el,.35).normalize();sunM.position.copy(cam.position).addScaledVector(sdr,340);moonM.position.copy(cam.position).addScaledVector(sdr,-340);stars.position.copy(cam.position);stars.material.opacity=M.max(0,nightF*1.25-.25);
 sun.intensity=.28+.97*dF;sun.color.copy(MNC).lerp(SUC,dF).lerp(SUD,dusk*.6*dF);hemi.intensity=.12+.58*dF;
 const sg=el>=0?1:-1;sunO.set(sdr.x*100*sg,M.max(35,M.abs(el)*100),sdr.z*100*sg)}
-function upd(dt){tm+=dt;cd-=dt;gcd-=dt;updVeh(dt);
+function upd(dt){tm+=dt;if(NET.on)tm=NET.clk();cd-=dt;gcd-=dt;updVeh(dt);
 adsT+=((rdown&&!drv?1:0)-adsT)*M.min(1,dt*(cur==3?8:12));
 let f=0,s=0,v=4.2;
 if(drv)drive(dt);else{
@@ -423,20 +435,44 @@ document.addEventListener('pointerlockerror',()=>{fb=1;lock=1;$('ov').style.disp
 SD=0;LQ.forEach(q=>mkZ(q[0],q[1],q[2],q[3],1));for(let i=0;i<10;i++)spawnZ();cam.position.set(0,1.9,3);hud();invHud();
 let last=performance.now();(function loop(n){requestAnimationFrame(loop);const dt=M.min((n-last)/1000,.05);last=n;if(lock&&!dead)upd(dt);sky.position.copy(cam.position);sun.position.set(pl.x+sunO.x,sunO.y,pl.z+sunO.z);sun.target.position.set(pl.x,0,pl.z);ren.render(scene,cam)})(last);
 
-/* ===== ONLINE MULTIPLAYER (SSE + POST, 依存なし) ===== */
-(()=>{const id=Math.random().toString(36).slice(2,10),nm='P-'+id.slice(0,4).toUpperCase(),hd=document.createElement('div');
-hd.style.cssText='position:fixed;top:12px;right:16px;z-index:5;color:#e9ecef;font:12px system-ui;text-shadow:0 1px 5px #000;text-align:right;pointer-events:none';document.body.appendChild(hd);
-const AV=new Map(),COL=[0xc0392b,0x2a6fb0,0x2e9e5b,0xd8a020,0x8e44ad,0xe67e22];
+/* ===== ONLINE (ルーム／ホスト同期) ===== */
+(()=>{const hd=document.createElement('div');hd.style.cssText='position:fixed;top:12px;right:16px;z-index:5;color:#e9ecef;font:12px system-ui;text-shadow:0 1px 5px #000;text-align:right;pointer-events:none';document.body.appendChild(hd);
+const AV=new Map(),COL=[0xc0392b,0x2a6fb0,0x2e9e5b,0xd8a020,0x8e44ad,0xe67e22],CL=c=>String(c||'').trim().slice(0,16).replace(/[^\w\-ぁ-んァ-ヶ一-龠ー]/g,''),inp=$('roomcode');
+let es=null,cnt=1;
+try{const u=new URLSearchParams(location.search).get('room')||localStorage.getItem('zcRoom')||'';inp.value=CL(u)}catch(e){}
+$('rdice').onclick=e=>{e.stopPropagation();inp.value=Math.random().toString(36).slice(2,6).toUpperCase()};
+['keydown','keyup','mousedown'].forEach(t=>inp.addEventListener(t,e=>e.stopPropagation()));
 function tagS(t){const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');g.font='700 34px system-ui';g.textAlign='center';g.lineWidth=6;g.strokeStyle='#000';g.strokeText(t,128,44);g.fillStyle='#fff';g.fillText(t,128,44);
 const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));sp.scale.set(2.4,.6,1);sp.position.y=2.35;sp.renderOrder=9;return sp}
 function mkAv(pid,n){const g=new THREE.Group(),h=[...pid].reduce((a,c)=>a+c.charCodeAt(0),0),m=new THREE.MeshStandardMaterial({color:COL[h%6]}),sk=new THREE.MeshStandardMaterial({color:0xc89a7a}),
 p=(ge,mt,x,y,z)=>{const o=new THREE.Mesh(ge,mt);o.position.set(x,y,z);o.castShadow=true;g.add(o)};
 p(new THREE.BoxGeometry(.5,.8,.3),m,0,1.15,0);p(new THREE.BoxGeometry(.4,.75,.25),m,0,.38,0);p(new THREE.SphereGeometry(.17,12,10),sk,0,1.75,0);p(new THREE.BoxGeometry(.2,.06,.08),new THREE.MeshBasicMaterial({color:0x111111}),0,1.77,-.15);
-g.add(tagS(n));scene.add(g);return{g,x:0,y:0,z:0,w:0,t:null}}
-const es=new EventSource('/events?id='+id);
-es.onmessage=e=>{const m=JSON.parse(e.data);for(const p of m.u||[]){if(p.id===id)continue;let a=AV.get(p.id);if(!a){a=mkAv(p.id,String(p.n||'Player').slice(0,12));AV.set(p.id,a);a.x=p.x;a.y=p.y;a.z=p.z}a.t=p;a.g.visible=!p.d}
-for(const k of m.l||[]){const a=AV.get(k);if(a){scene.remove(a.g);AV.delete(k)}}hd.textContent='🌐 ONLINE '+m.c+'人（自分: '+nm+'）'};
+g.add(tagS(n));scene.add(g);return{g,x:0,y:0,z:0,t:null}}
+NET.others=()=>{const o=[];for(const[k,a]of AV)if(a.t&&!a.t.d)o.push({id:k,x:a.x,y:a.y,z:a.z});return o};
+const showHd=()=>{hd.textContent='🌐 ROOM: '+NET.room+' ・ '+cnt+'人 ・ '+(NET.host?'ホスト':'参加')+' ・ 自分: P-'+NET.id.slice(0,4).toUpperCase()};
+function clearZ(){for(const z of zs)scene.remove(z.g);zs.length=0;PUP.clear()}
+function setHost(h){const was=NET.host;NET.host=h===NET.id?1:0;if(NET.host&&!was){let mx=0;for(const z of zs)mx=Math.max(mx,+z.id||0);ZID=Math.max(ZID,mx+1);PUP.clear()}if(!NET.host&&was)clearZ()}
+function apply(m){switch(m.k){
+case'zs':{if(NET.host)return;const now=performance.now();for(const r of m.z){let z=PUP.get(r[0]);if(!z){z=mkZ(r[1],r[2],r[4],r[3],r[8]);z.id=r[0];PUP.set(z.id,z)}
+z.tx=r[2];z.ty2=r[3];z.tz=r[4];z.tr=r[5];z.hp=r[7];z.lurk=r[8];z.seen=now;if(r[6]&&!z.dead){z.dead=1;z.dt=0;if(z.ty==3)gas(z);if(now-(z.lh||-1e9)<1500)kills++}}
+for(const[k,z]of PUP)if(now-z.seen>1500){scene.remove(z.g);z.rm=1;PUP.delete(k)}break}
+case'zh':{if(!NET.host)return;const z=zs.find(q=>q.id===m.id&&!q.dead);if(z){const k0=kills;hurtZ(z,m.n,new THREE.Vector3(z.x,z.y+1,z.z));kills=k0}break}
+case'dmg':if(m.to===NET.id)dmg(m.n,m.w);break;
+case'drop':spawnItem(m.t,m.x,m.z,m.y);break;
+case'base':{const l=LOTS[m.i];if(!l)return;l.w=m.w;l.i=m.iv;if(m.lv>l.lv){l.lv=m.lv;buildBase(l)}break}
+case'door':{const l=LOTS[m.l],d=l&&l.doors&&l.doors[m.d];if(!d||d.open===!!m.o)return;if(m.o){d.open=true;const k=B.indexOf(d.bb);if(k>=0)B.splice(k,1)}else{d.open=false;B.push(d.bb)}break}}}
+function join(){const c=CL(inp.value);if(!c){hd.textContent='ソロプレイ（ルームコード未入力）';return}NET.room=c;try{localStorage.setItem('zcRoom',c)}catch(e){}history.replaceState(null,'','?room='+encodeURIComponent(c));
+const q='room='+encodeURIComponent(c)+'&id='+NET.id;es=new EventSource('/events?'+q);
+es.onmessage=e=>{const m=JSON.parse(e.data);
+if(m.init){NET.off=m.now-Date.now();NET.t0=m.t0;NET.on=1;NET.host=m.host===NET.id?1:0;if(!NET.host)clearZ()}
+if(m.h)setHost(m.h);
+for(const p of m.u||[]){if(p.id===NET.id)continue;let a=AV.get(p.id);if(!a){a=mkAv(p.id,String(p.n||'Player').slice(0,12));AV.set(p.id,a);a.x=p.x;a.y=p.y;a.z=p.z}a.t=p;a.g.visible=!p.d}
+for(const k of m.l||[]){const a=AV.get(k);if(a){scene.remove(a.g);AV.delete(k)}}
+if(m.c!==undefined)cnt=m.c;for(const x of m.m||[])apply(x);showHd()};
 es.onerror=()=>{hd.textContent='🌐 接続中…'};
-setInterval(()=>{if(lock||fb)fetch('/pos',{method:'POST',keepalive:true,body:JSON.stringify({id,x:+pl.x.toFixed(2),y:+pl.y.toFixed(2),z:+pl.z.toFixed(2),w:+yaw.toFixed(2),d:dead?1:0,n:nm})}).catch(()=>{})},100);
+setInterval(()=>{if(NET.q.length){const b=NET.q.splice(0);fetch('/msg?'+q,{method:'POST',keepalive:true,body:JSON.stringify(b)}).catch(()=>{})}},50);
+setInterval(()=>{if(lock||fb)fetch('/pos?'+q,{method:'POST',keepalive:true,body:JSON.stringify({id:NET.id,x:+pl.x.toFixed(2),y:+pl.y.toFixed(2),z:+pl.z.toFixed(2),w:+yaw.toFixed(2),d:dead?1:0,n:'P-'+NET.id.slice(0,4).toUpperCase()})}).catch(()=>{})},100);
+setInterval(()=>{if(!NET.host)return;const ps=[{x:pl.x,z:pl.z}].concat(NET.others()),rows=[];for(const z of zs){if(z.rm||!ps.some(p=>M.hypot(p.x-z.x,p.z-z.z)<170))continue;rows.push([z.id,z.ty,+z.x.toFixed(1),+z.y.toFixed(1),+z.z.toFixed(1),+z.g.rotation.y.toFixed(2),z.dead?1:0,z.hp|0,z.lurk?1:0])}netSend({k:'zs',z:rows})},100)}
+$('bp').addEventListener('click',()=>{if(!es)join()});
 let lt=performance.now();(function f(n){requestAnimationFrame(f);const k=Math.min(1,(n-lt)/1000*10);lt=n;for(const a of AV.values()){const t=a.t;if(!t)continue;a.x+=(t.x-a.x)*k;a.y+=(t.y-a.y)*k;a.z+=(t.z-a.z)*k;a.g.position.set(a.x,a.y,a.z);a.g.rotation.y=t.w}})(lt)})();
 </script></body></html>
